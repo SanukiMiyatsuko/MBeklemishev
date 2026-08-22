@@ -1,0 +1,10 @@
+name = "wellfoundsystem"
+version = "0.1.0"
+defaultTargets = ["wellfoundsystem"]
+
+[[lean_lib]]
+name = "Wellfoundsystem"
+
+[[lean_exe]]
+name = "wellfoundsystem"
+root = "Main"
