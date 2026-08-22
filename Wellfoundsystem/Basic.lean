@@ -585,26 +585,26 @@ def T.size : T → Nat
 | Z => 0
 | P _ t1 t2 => t1.size + t2.size + 1
 
-inductive index_Prop : T → T → Prop where
-| Z_holds (t : T) : index_Prop Z t
-| P_holds (s0 : Nat) (s1 s2 t : T) (h : P s0 s1 Z < t) (hrec : index_Prop s2 t) :
-  index_Prop (P s0 s1 s2) t
+inductive T.index_Prop : T → T → Prop where
+| Z_holds (t : T) : T.index_Prop Z t
+| P_holds (s0 : Nat) (s1 s2 t : T) (h : P s0 s1 Z < t) (hrec : T.index_Prop s2 t) :
+  T.index_Prop (P s0 s1 s2) t
 
-theorem index_Prop_inv (s0 : Nat) (s1 s2 t : T) (h : index_Prop (P s0 s1 s2) t) :
-  P s0 s1 Z < t ∧ index_Prop s2 t := by
+theorem index_Prop_inv (s0 : Nat) (s1 s2 t : T) (h : T.index_Prop (P s0 s1 s2) t) :
+  P s0 s1 Z < t ∧ T.index_Prop s2 t := by
   cases h with
   | P_holds _ _ _ _ hlt hrec =>
     exact ⟨hlt, hrec⟩
 
-theorem index_Prop_Z_iff (t : T) : index_Prop Z t ↔ True := by
+theorem index_Prop_Z_iff (t : T) : T.index_Prop Z t ↔ True := by
   apply Iff.intro
   · intro _
     exact True.intro
   · intro _
-    exact index_Prop.Z_holds t
+    exact T.index_Prop.Z_holds t
 
 theorem index_Prop_P_iff (s0 : Nat) (s1 s2 t : T) :
-  index_Prop (P s0 s1 s2) t ↔ (if P s0 s1 Z < t then index_Prop s2 t else False) := by
+  T.index_Prop (P s0 s1 s2) t ↔ (if P s0 s1 Z < t then T.index_Prop s2 t else False) := by
   apply Iff.intro
   · intro h
     have hp := index_Prop_inv s0 s1 s2 t h
@@ -614,22 +614,22 @@ theorem index_Prop_P_iff (s0 : Nat) (s1 s2 t : T) :
     cases hdec : (inferInstance : Decidable (P s0 s1 Z < t)) with
     | isTrue hlt =>
       rw [if_pos hlt] at h
-      exact index_Prop.P_holds s0 s1 s2 t hlt h
+      exact T.index_Prop.P_holds s0 s1 s2 t hlt h
     | isFalse hnlt =>
       rw [if_neg hnlt] at h
       exact False.elim h
 
-def T.indexPropDecidable : (s t : T) → Decidable (index_Prop s t)
-| Z, t => isTrue (index_Prop.Z_holds t)
+def T.indexPropDecidable : (s t : T) → Decidable (T.index_Prop s t)
+| Z, t => isTrue (T.index_Prop.Z_holds t)
 | P s0 s1 s2, t =>
   if h : P s0 s1 Z < t then
     match T.indexPropDecidable s2 t with
-    | isTrue hp => isTrue (index_Prop.P_holds s0 s1 s2 t h hp)
+    | isTrue hp => isTrue (T.index_Prop.P_holds s0 s1 s2 t h hp)
     | isFalse hn => isFalse (fun hcontra => hn (index_Prop_inv s0 s1 s2 t hcontra).2)
   else
     isFalse (fun hcontra => h (index_Prop_inv s0 s1 s2 t hcontra).1)
 
-instance (s t : T) : Decidable (index_Prop s t) := T.indexPropDecidable s t
+instance (s t : T) : Decidable (T.index_Prop s t) := T.indexPropDecidable s t
 
 inductive Dom2 where
 | Zero
@@ -682,7 +682,7 @@ def T.drop (s t : T) : T :=
   match s with
   | Z => Z
   | P _ s1 s2 =>
-    if index_Prop s t then s
+    if T.index_Prop s t then s
     else match s2 with
       | Z => drop s1 t
       | P _ _ _ => drop s2 t
@@ -771,8 +771,8 @@ def T.ValidArg2 (s t : T) : Prop :=
   | .Zero => False
   | .One => t = Z
   | .ω => T.IsN t
-  | .M l => index_Prop t (P l Z Z)
-  | .Ω _ l0 l1 => index_Prop t (P l0 l1 Z)
+  | .M l => T.index_Prop t (P l Z Z)
+  | .Ω _ l0 l1 => T.index_Prop t (P l0 l1 Z)
 
 def T.fund2 (s t : T) : T :=
   match s with
@@ -812,29 +812,21 @@ decreasing_by
       | (have hD := T.drop_size_le s1 (P l Z Z); omega)
   )
 
-#eval! P 0 (P 0 (P 2 (P 1 (P 2 Z Z) Z) Z) Z) Z
-#eval! fund2 (P 0 (P 0 (P 2 (P 1 (P 2 Z Z) Z) Z) Z) Z) (P 0 Z (P 0 Z (P 0 Z Z)))
+#eval! fund2 (parse! "0^0^2^1^2") (parse! "0 + 0 + 0")
 
-#eval! P 0 (P 0 (P 2 (P 1 (P 2 Z Z) Z) (P 2 (P 1 (P 2 Z Z) Z) Z)) Z) Z
-#eval! fund2 (P 0 (P 0 (P 2 (P 1 (P 2 Z Z) Z) (P 2 (P 1 (P 2 Z Z) Z) Z)) Z) Z) (P 0 Z (P 0 Z (P 0 Z Z)))
+#eval! fund2 (parse! "0^0^(2^1^2 + 2^1^2)") (parse! "0 + 0 + 0")
 
-#eval! P 0 (P 0 (P 2 (P 1 (P 2 Z Z) (P 1 (P 2 Z Z) Z)) Z) Z) Z
-#eval! fund2 (P 0 (P 0 (P 2 (P 1 (P 2 Z Z) (P 1 (P 2 Z Z) Z)) Z) Z) Z) (P 0 Z (P 0 Z (P 0 Z Z)))
+#eval! fund2 (parse! "0^0^2^(1^2 + 1^2)") (parse! "0 + 0 + 0")
 
-#eval! P 0 (P 0 (P 2 (P 1 (P 2 Z (P 2 Z Z)) Z) Z) Z) Z
-#eval! fund2 (P 0 (P 0 (P 2 (P 1 (P 2 Z (P 2 Z Z)) Z) Z) Z) Z) (P 0 Z (P 0 Z (P 0 Z Z)))
+#eval! fund2 (parse! "0^0^2^1^(2 + 2)") (parse! "0 + 0 + 0")
 
-#eval! P 0 (P 0 (P 1 Z Z) (P 0 (P 1 Z Z) Z)) Z
-#eval! fund2 (P 0 (P 0 (P 1 Z Z) (P 0 (P 1 Z Z) Z)) Z) (P 0 Z (P 0 Z (P 0 Z Z)))
+#eval! fund2 (parse! "0^(0^1 + 0^1)") (parse! "0 + 0 + 0")
 
-#eval! P 0 (P 0 (P 1 Z (P 1 Z Z)) Z) Z
-#eval! fund2 (P 0 (P 0 (P 1 Z (P 1 Z Z)) Z) Z) (P 0 Z (P 0 Z (P 0 Z Z)))
+#eval! fund2 (parse! "0^0^(1 + 1)") (parse! "0 + 0 + 0")
 
-#eval! P 0 (P 0 (P 1 (P 0 (P 1 Z Z) Z) (P 1 (P 0 (P 1 Z Z) Z) Z)) Z) Z
-#eval! fund2 (P 0 (P 0 (P 1 (P 0 (P 1 Z Z) Z) (P 1 (P 0 (P 1 Z Z) Z) Z)) Z) Z) (P 0 Z (P 0 Z (P 0 Z Z)))
+#eval! fund2 (parse! "0^0^(1^0^1 + 1^0^1)") (parse! "0 + 0 + 0")
 
-#eval! P 0 (P 0 (P 1 (P 0 (P 1 Z Z) Z) Z) (P 0 (P 1 (P 0 (P 1 Z Z) Z) Z) Z)) Z
-#eval! fund2 (P 0 (P 0 (P 1 (P 0 (P 1 Z Z) Z) Z) (P 0 (P 1 (P 0 (P 1 Z Z) Z) Z) Z)) Z) (P 0 Z (P 0 Z (P 0 Z Z)))
+#eval! fund2 (parse! "0^(0^1^0^1 + 0^1^0^1)") (parse! "0 + 0 + 0")
 
 def T.takeAt (s t : T) : T :=
   match s with
@@ -1087,9 +1079,9 @@ def T.ValidArg3 (s t : T) : Prop :=
   | .Zero => False
   | .One => t = Z
   | .ω => T.IsN t
-  | .M2 l => index_Prop t (P l Z Z)
-  | .M1 _ l0 l1 => index_Prop t (P l0 l1 Z)
-  | .Ω _ l0 _ l2 => index_Prop t (P l0 l2 Z)
+  | .M2 l => T.index_Prop t (P l Z Z)
+  | .M1 _ l0 l1 => T.index_Prop t (P l0 l1 Z)
+  | .Ω _ l0 _ l2 => T.index_Prop t (P l0 l2 Z)
 
 def T.fund3 (s t : T) : T :=
   match s with
@@ -1697,10 +1689,10 @@ def T.ValidArg4 (s t : T) : Prop :=
   | .Zero => False
   | .One => t = Z
   | .ω => T.IsN t
-  | .M3 l => index_Prop t (P l Z Z)
-  | .M2 _ l0 l1 => index_Prop t (P l0 l1 Z)
-  | .M1 _ l0 _ l2 => index_Prop t (P l0 l2 Z)
-  | .Ω _ l0 _ _ l3 => index_Prop t (P l0 l3 Z)
+  | .M3 l => T.index_Prop t (P l Z Z)
+  | .M2 _ l0 l1 => T.index_Prop t (P l0 l1 Z)
+  | .M1 _ l0 _ l2 => T.index_Prop t (P l0 l2 Z)
+  | .Ω _ l0 _ _ l3 => T.index_Prop t (P l0 l3 Z)
 
 def T.fund4 (s t : T) : T :=
   match s with
@@ -1839,3 +1831,11 @@ def T.dom (M : Nat) : T → Dom
       else .ω
     else .Ω l l0 l1 args
 | P _ _ (P s0 s1 s2) => T.dom M (P s0 s1 s2)
+
+def T.ValidArg (M : Nat) (s t : T) : Prop :=
+  match T.dom M s with
+  | .Zero => False
+  | .One => t = Z
+  | .ω => T.IsN t
+  | .M l => T.index_Prop t (P l Z Z)
+  | .Ω _ l0 l1 args => T.index_Prop t (P l0 (args.getLastD l1) Z)
