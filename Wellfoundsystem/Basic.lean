@@ -1908,7 +1908,17 @@ def T.fund (M : Nat) (s t : T) : T :=
         | _ + 1 => t
     | .One => T.mul (P s0 (T.fund M s1 Z) Z) t
     | .ω => P s0 (T.fund M s1 t) Z
-    | .M l => sorry
-    | .Ω l l0 l1 args => sorry
+    | .M l =>
+      if s0 < l then
+        if M = 1 ∨ s0 + 1 < l then
+          let F := T.fund M s1
+          P s0 (T.fund M s1 (T.iter1 s0 F t)) Z
+        else t
+      else P s0 (T.fund M s1 t) Z
+    | .Ω l l0 l1 args =>
+      let ln := args.getLastD l1
+      if P s0 s1 Z < P l0 ln Z then
+        sorry
+      else P s0 (T.fund M s1 t) Z
   | P s0 s1 (P s20 s21 s22) =>
     P s0 s1 (T.fund M (P s20 s21 s22) t)
