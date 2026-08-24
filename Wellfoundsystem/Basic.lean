@@ -581,9 +581,96 @@ theorem Z_le (s : T) : Z ≤ s := by
     apply Or.inl
     exact T.Lt.Z_lt_P s0 s1 s2
 
-def T.size : T → Nat
-| Z => 0
-| P _ t1 t2 => t1.size + t2.size + 1
+inductive Dom0 where
+| Zero
+| One
+| ω
+deriving DecidableEq
+
+def T.dom0 : T → Dom0
+| Z => .Zero
+| P s0 s1 Z =>
+  match T.dom0 s1 with
+  | .Zero =>
+    match s0 with
+    | 0 => .One
+    | _ + 1 => .ω
+  | .One => .ω
+  | .ω => .ω
+| P _ _ (P s20 s21 s22) =>
+  T.dom0 (P s20 s21 s22)
+
+def T.mul : T → T → T
+| _, Z => Z
+| a, P _ _ m2 => mul a m2 + a
+
+def T.iter0 (s0' : Nat) : T → T
+| Z => Z
+| P _ _ m2 =>
+  let prev := iter0 s0' m2
+  P s0' prev Z
+
+def T.fund0 (s t : T) : T :=
+  match s with
+  | Z => Z
+  | P s0 s1 Z =>
+    match T.dom0 s1 with
+    | .Zero =>
+      match s0 with
+      | 0 => Z
+      | s0' + 1 => T.iter0 s0' t
+    | .One => T.mul (P s0 (T.fund0 s1 Z) Z) t
+    | .ω => P s0 (T.fund0 s1 t) Z
+  | P s0 s1 (P s20 s21 s22) =>
+    P s0 s1 (T.fund0 (P s20 s21 s22) t)
+
+inductive Dom1 where
+| Zero
+| One
+| ω
+| Ω (l : Nat)
+deriving DecidableEq
+
+def T.dom1 : T → Dom1
+| Z => .Zero
+| P s0 s1 Z =>
+  match T.dom1 s1 with
+  | .Zero =>
+    match s0 with
+    | 0 => .One
+    | _ + 1 => .Ω s0
+  | .One => .ω
+  | .ω => .ω
+  | .Ω l =>
+    if s0 < l then .ω
+    else .Ω l
+| P _ _ (P s20 s21 s22) =>
+  T.dom1 (P s20 s21 s22)
+
+def T.iter1 (s0 : Nat) (F : T → T) : T → T
+| Z => Z
+| P _ _ m2 =>
+  let prev := iter1 s0 F m2
+  P s0 (F prev) Z
+
+def T.fund1 (s t : T) : T :=
+  match s with
+  | Z => Z
+  | P s0 s1 Z =>
+    match T.dom1 s1 with
+    | .Zero =>
+      match s0 with
+      | 0 => Z
+      | _ + 1 => t
+    | .One => T.mul (P s0 (T.fund1 s1 Z) Z) t
+    | .ω => P s0 (T.fund1 s1 t) Z
+    | .Ω l =>
+      if s0 < l then
+        let F := fun x => T.fund1 s1 x
+        P s0 (T.fund1 s1 (T.iter1 s0 F t)) Z
+      else P s0 (T.fund1 s1 t) Z
+  | P s0 s1 (P s20 s21 s22) =>
+    P s0 s1 (T.fund1 (P s20 s21 s22) t)
 
 inductive T.index_Prop : T → T → Prop where
 | Z_holds (t : T) : T.index_Prop Z t
@@ -662,16 +749,6 @@ def T.dom2 : T → Dom2
 | P _ _ s2 =>
   dom2 s2
 
-def T.mul : T → T → T
-| _, Z => Z
-| a, P _ _ m2 => mul a m2 + a
-
-def T.iter1 (s0 : Nat) (F : T → T) : T → T
-| Z => Z
-| P _ _ m2 =>
-  let prev := iter1 s0 F m2
-  P s0 (F prev) Z
-
 def T.iter2 (li : Nat) (F1 F2 : T → T) : T → T
 | Z => Z
 | P _ _ m2 =>
@@ -686,6 +763,10 @@ def T.drop (s t : T) : T :=
     else match s2 with
       | Z => drop s1 t
       | P _ _ _ => drop s2 t
+
+def T.size : T → Nat
+| Z => 0
+| P _ t1 t2 => t1.size + t2.size + 1
 
 theorem T.size_P (s0 : Nat) (s1 s2 : T) : (P s0 s1 s2).size = s1.size + s2.size + 1 := rfl
 
@@ -779,7 +860,10 @@ def T.fund2 (s t : T) : T :=
   | Z => Z
   | P s0 s1 Z =>
     match _h1 : T.dom2 s1 with
-    | .Zero => t
+    | .Zero =>
+      match s0 with
+      | 0 => Z
+      | _ + 1 => t
     | .One => T.mul (P s0 (T.fund2 s1 Z) Z) t
     | .ω => P s0 (T.fund2 s1 t) Z
     | .M l =>
@@ -1088,7 +1172,10 @@ def T.fund3 (s t : T) : T :=
   | Z => Z
   | P s0 s1 Z =>
     match _h1 : T.dom3 s1 with
-    | .Zero => t
+    | .Zero =>
+      match s0 with
+      | 0 => Z
+      | _ + 1 => t
     | .One => T.mul (P s0 (T.fund3 s1 Z) Z) t
     | .ω => P s0 (T.fund3 s1 t) Z
     | .M2 l =>
@@ -1699,7 +1786,10 @@ def T.fund4 (s t : T) : T :=
   | Z => Z
   | P s0 s1 Z =>
     match _h1 : T.dom4 s1 with
-    | .Zero => t
+    | .Zero =>
+      match s0 with
+      | 0 => Z
+      | _ + 1 => t
     | .One => T.mul (P s0 (T.fund4 s1 Z) Z) t
     | .ω => P s0 (T.fund4 s1 t) Z
     | .M3 l =>
@@ -1880,6 +1970,88 @@ def T.dom (M : Nat) : T → Dom
     else .Ω l l0 l1 args
 | P _ _ (P s0 s1 s2) => T.dom M (P s0 s1 s2)
 
+theorem T.dom_Ω_chain_size_lt : ∀ (s : T) (M l l0 : Nat) (l1 : T) (args : List T),
+    T.dom M s = .Ω l l0 l1 args → ∀ x ∈ (l1 :: args), x.size < s.size := by
+  intro s
+  induction s with
+  | Z =>
+    intro M l l0 l1 args h
+    simp [T.dom] at h
+  | P s0 s1 s2 ih1 ih2 =>
+    intro M l l0 l1 args h
+    cases s2 with
+    | Z =>
+      simp only [T.dom] at h
+      cases hd1 : T.dom M s1 with
+      | Zero =>
+        rw [hd1] at h
+        cases s0 with
+        | zero => simp at h
+        | succ n =>
+          cases M with
+          | zero => simp at h
+          | succ m => simp at h
+      | One =>
+        rw [hd1] at h
+        simp at h
+      | ω =>
+        rw [hd1] at h
+        simp at h
+      | M l' =>
+        rw [hd1] at h
+        by_cases hc1 : s0 < l'
+        · by_cases hc2 : M = 1 ∨ s0 + 1 < l'
+          · simp [hc1, hc2] at h
+          · simp [hc1, hc2] at h
+            obtain ⟨e1, e2, e3, e4⟩ := h
+            subst e1; subst e2; subst e3; subst e4
+            intro x hx
+            simp only [List.mem_cons, List.not_mem_nil, or_false] at hx
+            subst hx
+            simp [T.size]
+        · simp [hc1] at h
+      | Ω l' l0' l1' args' =>
+        rw [hd1] at h
+        by_cases hc : P s0 s1 Z < P l0' (args'.getLast?.getD l1') Z
+        · by_cases hc2 : s0 + 1 < l'
+          · simp [hc, hc2] at h
+          · by_cases hc3 : args'.length + 2 < M
+            · by_cases hc4 : T.domChainBelow s0 s1 l0' (P l' Z Z) (l1' :: args')
+              · simp [hc, hc2, hc3, hc4] at h
+              · simp [hc, hc2, hc3, hc4] at h
+                obtain ⟨e1, e2, e3, e4⟩ := h
+                subst e1; subst e2; subst e3; subst e4
+                have hprev := ih1 M l' l0' l1' args' hd1
+                intro x hx
+                simp only [List.mem_cons, List.mem_append, List.not_mem_nil, or_false] at hx
+                rcases hx with hx | hx | hx
+                · have hb := hprev l1' List.mem_cons_self
+                  subst hx
+                  simp only [T.size_P]
+                  omega
+                · have hb := hprev x (List.mem_cons_of_mem l1' hx)
+                  simp only [T.size_P]
+                  omega
+                · subst hx
+                  simp only [T.size_P]
+                  omega
+            · simp [hc, hc2, hc3] at h
+        · simp [hc] at h
+          obtain ⟨e1, e2, e3, e4⟩ := h
+          subst e1; subst e2; subst e3; subst e4
+          have hprev := ih1 M l' l0' l1' args' hd1
+          intro x hx
+          have hb := hprev x hx
+          simp only [T.size_P]
+          omega
+    | P s20 s21 s22 =>
+      simp only [T.dom] at h
+      have hlt := ih2 M l l0 l1 args h
+      intro x hx
+      have hb := hlt x hx
+      simp only [T.size_P] at hb ⊢
+      omega
+
 def T.ValidArg (M : Nat) (s t : T) : Prop :=
   match T.dom M s with
   | .Zero => False
@@ -1888,17 +2060,11 @@ def T.ValidArg (M : Nat) (s t : T) : Prop :=
   | .M l => T.index_Prop t (P l Z Z)
   | .Ω _ l0 l1 args => T.index_Prop t (P l0 (args.getLastD l1) Z)
 
-def T.iter0 (s0' : Nat) : T → T
-| Z => Z
-| P _ _ m2 =>
-  let prev := iter0 s0' m2
-  P s0' prev Z
-
 def T.fund (M : Nat) (s t : T) : T :=
   match s with
   | Z => Z
   | P s0 s1 Z =>
-    match T.dom M s1 with
+    match _h1 : T.dom M s1 with
     | .Zero =>
       match s0 with
       | 0 => Z
