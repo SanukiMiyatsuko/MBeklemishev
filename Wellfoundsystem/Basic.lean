@@ -1787,6 +1787,54 @@ decreasing_by
       | (have hD := T.drop_size_le s1 (P l0 l2 Z); omega)
   )
 
+#eval fund4 (parse! "0^2^2^1^1^1^2^1^1^2") (parse! "0 + 0 + 0")
+
+#eval fund4 (parse! "0^0^1^1^0^1^0^1^0^1^1") (parse! "0 + 0 + 0")
+
+#eval fund4 (parse! "0^0^1^1^0^1^0^1^0^1^(1 + 1)") (parse! "0 + 0 + 0")
+
+#eval fund4 (parse! "0^0^1^1^0^1^0^1^0^(1^1 + 1^1)") (parse! "0 + 0 + 0")
+
+#eval fund4 (parse! "0^0^1^1^0^1^0^1^(0^1^1 + 0^1^1)") (parse! "0 + 0 + 0")
+
+#eval fund4 (parse! "0^0^1^1^0^1^0^(1^0^1^1 + 1^0^1^1)") (parse! "0 + 0 + 0")
+
+#eval fund4 (parse! "0^0^1^1^0^1^(0^1^0^1^1 + 0^1^0^1^1)") (parse! "0 + 0 + 0")
+
+#eval fund4 (parse! "0^0^1^1^0^(1^0^1^0^1^1 + 1^0^1^0^1^1)") (parse! "0 + 0 + 0")
+
+#eval fund4 (parse! "0^0^1^1^(0^1^0^1^0^1^1 + 0^1^0^1^0^1^1)") (parse! "0 + 0 + 0")
+
+#eval fund4 (parse! "0^0^1^(1^0^1^0^1^0^1^1 + 1^0^1^0^1^0^1^1)") (parse! "0 + 0 + 0")
+
+#eval fund4 (parse! "0^0^(1^1^0^1^0^1^0^1^1 + 1^1^0^1^0^1^0^1^1)") (parse! "0 + 0 + 0")
+
+#eval fund4 (parse! "0^(0^1^1^0^1^0^1^0^1^1 + 0^1^1^0^1^0^1^0^1^1)") (parse! "0 + 0 + 0")
+
+#eval fund4 (parse! "0^0^0^1^1^0^0^1^0^0^1^0^1") (parse! "0 + 0 + 0")
+
+#eval fund4 (parse! "0^0^0^1^1^0^0^1^0^0^1^0^(1 + 1)") (parse! "0 + 0 + 0")
+
+#eval fund4 (parse! "0^0^0^1^1^0^0^1^0^0^(1^0^1 + 1^0^1)") (parse! "0 + 0 + 0")
+
+#eval fund4 (parse! "0^0^0^1^1^0^0^1^0^(0^1^0^1 + 0^1^0^1)") (parse! "0 + 0 + 0")
+
+#eval fund4 (parse! "0^0^0^1^1^0^0^1^(0^0^1^0^1 + 0^0^1^0^1)") (parse! "0 + 0 + 0")
+
+#eval fund4 (parse! "0^0^0^1^1^0^0^(1^0^0^1^0^1 + 1^0^0^1^0^1)") (parse! "0 + 0 + 0")
+
+#eval fund4 (parse! "0^0^0^1^1^0^(0^1^0^0^1^0^1 + 0^1^0^0^1^0^1)") (parse! "0 + 0 + 0")
+
+#eval fund4 (parse! "0^0^0^1^1^(0^0^1^0^0^1^0^1 + 0^0^1^0^0^1^0^1)") (parse! "0 + 0 + 0")
+
+#eval fund4 (parse! "0^0^0^1^(1^0^0^1^0^0^1^0^1 + 1^0^0^1^0^0^1^0^1)") (parse! "0 + 0 + 0")
+
+#eval fund4 (parse! "0^0^0^(1^1^0^0^1^0^0^1^0^1 + 1^1^0^0^1^0^0^1^0^1)") (parse! "0 + 0 + 0")
+
+#eval fund4 (parse! "0^0^(0^1^1^0^0^1^0^0^1^0^1 + 0^1^1^0^0^1^0^0^1^0^1)") (parse! "0 + 0 + 0")
+
+#eval fund4 (parse! "0^(0^0^1^1^0^0^1^0^0^1^0^1 + 0^0^1^1^0^0^1^0^0^1^0^1)") (parse! "0 + 0 + 0")
+
 inductive Dom where
 | Zero
 | One
@@ -1839,3 +1887,28 @@ def T.ValidArg (M : Nat) (s t : T) : Prop :=
   | .ω => T.IsN t
   | .M l => T.index_Prop t (P l Z Z)
   | .Ω _ l0 l1 args => T.index_Prop t (P l0 (args.getLastD l1) Z)
+
+def T.iter0 (s0' : Nat) : T → T
+| Z => Z
+| P _ _ m2 =>
+  let prev := iter0 s0' m2
+  P s0' prev Z
+
+def T.fund (M : Nat) (s t : T) : T :=
+  match s with
+  | Z => Z
+  | P s0 s1 Z =>
+    match T.dom M s1 with
+    | .Zero =>
+      match s0 with
+      | 0 => Z
+      | s0' + 1 =>
+        match M with
+        | 0 => T.iter0 s0' t
+        | _ + 1 => t
+    | .One => T.mul (P s0 (T.fund M s1 Z) Z) t
+    | .ω => P s0 (T.fund M s1 t) Z
+    | .M l => sorry
+    | .Ω l l0 l1 args => sorry
+  | P s0 s1 (P s20 s21 s22) =>
+    P s0 s1 (T.fund M (P s20 s21 s22) t)
